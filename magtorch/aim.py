@@ -66,5 +66,4 @@ def reaction_parameter(flatmag):
     rparameter = np.cumsum(distance_np)
     rparameter = rparameter/rparameter[-1]
     return np.insert(rparameter,0,0.)
-
     
