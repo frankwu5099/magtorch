@@ -1,31 +1,18 @@
 
 from magtorch import *
 import matplotlib.pyplot as plt
+import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
 import time
 from tqdm import tqdm
 
-def showmag(magconfig, ti = 0, zi = 0):
-    print(magconfig.shape)
-    th = magconfig[ti,0,:,:,zi]
-    phi = magconfig[ti,1,:,:,zi]
-    xa, ya = np.arange(th.shape[0]),np.arange(th.shape[1])
-    x,y = np.meshgrid(xa,ya,indexing = 'ij')
-    mx = np.cos(th)
-    my = np.sin(th)*np.cos(phi)
-    mz = np.sin(th)*np.sin(phi)
-    plt.quiver(x,y,mx,my,mz)
-    plt.colorbar()
-    plt.show()
-
 if __name__ == "__main__":
     a = Model(32,32,1,256)
-    a.config = torch.tensor(skyrmion_bobber_timeline(64,64,16,5, 2.,0.6,128),requires_grad = True, device = device,dtype = torch.float)
+    a.config = torch.tensor(skyrmion_timeline(24,24,4, 1.5,0.6,128),requires_grad = True, device = device,dtype = torch.float)#,16
 
     ts_out = np.linspace(0.,1.,128)
-    for ti in range(0,128,4):
-        showmag(a.config.detach().to("cpu").numpy(),ti =ti)
+    showconfig3D(a.config.detach().to("cpu").numpy(),ti =0)
 
     opt_Adam = torch.optim.Adam([a.config], lr=0.05)
     """
@@ -91,7 +78,7 @@ if __name__ == "__main__":
     #    plt.quiver(x,y,mx,my,mz)
     #    plt.colorbar()
     #    plt.show()
-    atmp = Model(64,64,16)
+    atmp = Model(24,24,1)
     atmp.config.data = a.config[0:1].data
     t1 = time.time()
     hess_sk1 = Hessian_sparse(atmp.config,atmp.energy_all())
@@ -99,12 +86,6 @@ if __name__ == "__main__":
     print(time.time()-t1)
     #print(hess_sk.to_dense.to("cpu").detach().numpy())
     e,v = scipy.sparse.linalg.eigsh(hess_sk1,k=1,sigma= 0.0)
-    x = np.arange(64)
-    y = np.arange(64)
-    x, y = np.meshgrid(x,y,indexing= 'ij')
     for k in range(1):
         th = v[:,k]#.flatten()
-        ph = th[len(th)//2:]
-        th = th[:len(th)//2]
-        plt.scatter(x.flatten(), y.flatten(), c = ph*ph+th*th)
-        plt.show()
+        showconfigmode3D(th,atmp.config.to("cpu").detach().numpy())

@@ -10,7 +10,7 @@ class Model:
     """
     N 3D Magnetic systems with spins Lx x Ly x Lz stored in spherical coordinate. 
     """
-    def __init__(self, Lx, Ly, Lz, N=1, parameters = {'J':1.,'a':1.0,'Dinter': 0.1, 'Dbulk':0., 'Anisotropy': 1.2*0.1*0.1, 'H':0.25*0.1*0.1},boundary = (1,1,0)):
+    def __init__(self, Lx, Ly, Lz, N=1, parameters = {'J':1.,'a':1.0,'Dinter': 0.2, 'Dbulk':0., 'Anisotropy': 1.2*0.2*0.2, 'H':0.25*0.2*0.2},boundary = (1,1,0)):
         self.config = torch.tensor(skyrmion_timeline(32,32,5, 2.,0.6,128),requires_grad = True, device = device,dtype = torch.float)
         self.parameters = parameters
         self.boundary = boundary
