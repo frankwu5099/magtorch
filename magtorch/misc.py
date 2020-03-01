@@ -99,3 +99,35 @@ def skyrmion_bobber_timeline(Lx, Ly, Lz, lengthscale, R, w, Ntime, z0=None, C = 
         z0 = -lengthscale
     z0_t = np.linspace(z0,Lz,Ntime)
     return np.stack([skyrmion_bobber(Lx, Ly, Lz, lengthscale, R, w, _z0, C = 1, dphi = 0) for _z0 in z0_t],axis = 0)
+
+def Hessian_between_layers(magslice, energy, device = "cuda"):#for qivide & conquer method
+    Lz = magslice.size()[-1]
+    N = magslice.view(-1).size()[0]//Lz
+    ones = torch.ones((N//2,Lz),dtype=torch.float,device=device)
+    jacobian_correction = torch.cat((ones, 1./torch.sin(magslice.data.view(-1,Lz)[:N//2])),0)
+    hess_inlayers=[]
+    hess_betweenlayers=[]
+    gradout = torch.autograd.grad(energy,magslice, create_graph=True, retain_graph=True)[0].reshape(-1,Lz)
+    for zi in range(Lz-1):
+        print(zi)
+        hess_list = []
+        for i in range(N):
+            print(i)
+            #tmp = torch.autograd.grad(gradout[i,zi],magslice, create_graph=True)[0]
+            hess_list.append((jacobian_correction[i,zi]\
+            *torch.autograd.grad(gradout[i,zi],magslice, create_graph=True)[0].view(-1,Lz)\
+            *jacobian_correction).data[:,zi:zi+2])
+            #del tmp
+            torch.cuda.empty_cache() 
+        hess = torch.stack(hess_list,dim = 0)
+        #hess = torch.stack([(jacobian_correction[i,zi]\
+        #    *torch.autograd.grad(gradout[i,zi],magslice, create_graph=True)[0].view(-1,Lz)\
+        #    *jacobian_correction)[:,zi:zi+2] for i in range(N)],dim = 0) # hess [Nlayer, Nlayer,Lz]
+        hess_inlayers.append(hess[:,:,0].to("cpu").detach().numpy())
+        if (zi+1 < Lz) :
+            hess_betweenlayers.append(hess[:,:,1].to("cpu").detach().numpy())# hess [Nlayer(zi), Nlayer(zi+1)]
+    hess = torch.stack([(jacobian_correction[i,Lz-1]\
+        *torch.autograd.grad(gradout[i,zi],magslice, create_graph=True)[0].view(-1,Lz)\
+        *jacobian_correction)[:,Lz-1:Lz] for i in range(N)],dim = 0) # hess [Nlayer, Nlayer,Lz]
+    hess_inlayers.append(hess[:,:,0].to("cpu").detach().numpy())
+    return hess_inlayers, hess_betweenlayers
