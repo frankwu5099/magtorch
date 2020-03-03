@@ -4,6 +4,10 @@ import torch
 from .misc import *
 import torch.nn.functional as F
 from .aim import *
+try:
+    import yaml
+except:
+    print("yaml is required, or the save function does not work")
 use_cuda = 1 #not args.no_cuda and torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 class Model:
@@ -112,3 +116,18 @@ class Model:
         self.configvec = flat_map(self.config)
         energy_site = torch.sum(self.configvec * (self.external_field_tensor + self.effective_field_conv_flat()),1)
         return energy_site.sum()
+    
+    def save_config(self, name):
+        np.save(name,self.config.to("cpu").detach().numpy())
+    def save_energy(self, name):
+        np.save(name,self.energy().to("cpu").detach().numpy())
+    def save_model(self, name, parameter_only = False):
+        if parameter_only:
+            with open(name+'.yml', 'w') as outfile:
+                yaml.dump({'parameters':self.parameters, "boundary": list(self.boundary)}, outfile, default_flow_style=False)
+        else:
+            self.save_config(name+"_config")
+            self.save_energy(name+"_energypath")
+            with open(name+'.yml', 'w') as outfile:
+                yaml.dump({'parameters':self.parameters, "boundary": list(self.boundary), "config_file":name+"_config.py",\
+                    "energy_file":name+"_energypath.py"}, outfile, default_flow_style=False)

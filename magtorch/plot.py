@@ -66,13 +66,12 @@ def showmode3D(magmode,magconfig, ti = 0, zi = 0):
     x = x.flatten()
     y = y.flatten()
     z = z.flatten()
-    normalize_constant = mz.max()
+    normalize_constant = np.sqrt(mz**2 + my**2 + mx**2).max()
     mz = mz.flatten()/normalize_constant
     mx = mx.flatten()/normalize_constant
     my = my.flatten()/normalize_constant
     color = plt.cm.jet(plt.Normalize()(mz))[:,:3]
-    print(color)
-    b = vtkp.Arrows(np.stack([x-mx/2,y-my/2,z-mz/2],axis=1),np.stack([x+mx/2,y+my/2,z+mz/2],axis=1),c = "",scale = 1.5, res = 20, alpha = 0.7)#
+    b = vtkp.Arrows(np.stack([x-mx/2,y-my/2,z-mz/2],axis=1),np.stack([x+mx/2,y+my/2,z+mz/2],axis=1),c = color,scale = 1.5, res = 20, alpha = 0.7)#
     vtkp.show([b], newPlotter =True)
 def showconfigmode3D(magmode,magconfig, ti = 0, zi = 0):
     mode = magmode.reshape(magconfig.shape)
