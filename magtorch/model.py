@@ -15,7 +15,7 @@ class Model:
     N 3D Magnetic systems with spins Lx x Ly x Lz stored in spherical coordinate. 
     """
     def __init__(self, Lx, Ly, Lz, N=1, parameters = None,boundary = (1,1,0)):
-        self.config = torch.tensor(skyrmion_timeline(32,32,5, 2.,0.6,128),requires_grad = True, device = device,dtype = torch.float)
+        self.config = torch.tensor(skyrmion_timeline(32,32,5, 2.,0.6,12),requires_grad = True, device = device,dtype = torch.float)
         if parameters is None:
             parameters = {'J':1.,'a':1.0,'Dinter': 0.2, 'Dbulk':0., 'Anisotropy': 1.2*0.2*0.2, 'H':0.25*0.2*0.2}
         self.parameters = parameters
@@ -105,14 +105,36 @@ class Model:
         return F.conv3d(F.pad(self.configvec, expanded_padding, mode='circular'),self.kernel,padding = padding0)
     
     def external_field_update(self):
+        """
+        self.Lt = self.config.size()[0]
+        #field_change = np.linspace(0,1,self.Lt)
+        field_change = np.ones(self.Lt)
+        self.external_field_tensor = torch.reshape(torch.tensor(np.stack([field_change*0,field_change*0,-field_change*self.parameters['H']],axis = 1)), (self.Lt,3)).to(device)
+        """
         self.external_field_tensor = torch.reshape(torch.tensor([0,0,-self.parameters['H']]), (1,3,1,1,1)).to(device)
     
     def energy(self):
+        """
+        self.configvec = flat_map(self.config)
+        energy_site = torch.sum(self.configvec * (self.effective_field_conv_flat()),1)
+        field_energy = torch.sum(self.external_field_tensor*torch.sum(self.configvec,(2,3,4)),axis = 1)
+        return torch.sum(energy_site,(1,2,3)) + field_energy
+        """
         self.configvec = flat_map(self.config)
         energy_site = torch.sum(self.configvec * (self.external_field_tensor + self.effective_field_conv_flat()),1)
-        return torch.sum(energy_site,(1,2,3))/2.
+        return torch.sum(energy_site,(1,2,3))
+
+    def M(self):
+        self.configvec = flat_map(self.config)
+        return torch.sum(self.configvec[:,2,:,:,:],(1,2,3))
 
     def energy_all(self):
+        """
+        self.configvec = flat_map(self.config)
+        energy_site = torch.sum(self.configvec * (self.effective_field_conv_flat()),axis = 1)
+        field_energy = self.external_field_tensor*torch.sum(self.configvec,(2,3,4))
+        return energy_site.sum() + field_energy.sum()
+        """
         self.configvec = flat_map(self.config)
         energy_site = torch.sum(self.configvec * (self.external_field_tensor + self.effective_field_conv_flat()),1)
         return energy_site.sum()

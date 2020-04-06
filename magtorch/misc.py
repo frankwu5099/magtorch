@@ -62,6 +62,28 @@ def skyrmion_config(Lx,Ly, lengthscale, R, w, C = 1, dphi = 0): #C
         mz = mz.reshape(1,Lx,Ly,1)
     return spherical_map(np.stack([mx,my,mz],axis = 1))
 
+def two_skyrmion_config(Lx,Ly, lengthscale, R, w, C = 1, dphi = 0): #C
+    xa = np.linspace(-(Lx-1)/2, (Lx-1)/2, Lx)
+    ya = np.linspace(-(Ly-1)/2, (Ly-1)/2, Ly)
+    x, y = np.meshgrid(xa,ya, indexing = 'ij')
+    r = np.sqrt(x**2+y**2)/lengthscale
+    th = skyrmion_shape_th(r,R,w)
+    if C == -1:
+        th = np.pi - th
+    phi = dphi + np.arctan2(y,x)
+    mx = np.sin(th) * np.cos(phi)
+    my = np.sin(th) * np.sin(phi)
+    mz = np.cos(th)
+    mx2 = np.roll(np.roll(mx,Lx//2,axis = 0),Ly//2, axis = 1)
+    my2 = np.roll(np.roll(my,Lx//2,axis = 0),Ly//2, axis = 1)
+    mz2 = np.roll(np.roll(mz,Lx//2,axis = 0),Ly//2, axis = 1)
+    mx[mz2<0.8] = mx2[mz2<0.8]
+    my[mz2<0.8] = my2[mz2<0.8]
+    mz[mz2<0.8] = mz2[mz2<0.8]
+    mx = mx.reshape(1,Lx,Ly,1)
+    my = my.reshape(1,Lx,Ly,1)
+    mz = mz.reshape(1,Lx,Ly,1)
+    return spherical_map(np.stack([mx,my,mz],axis = 1))
 def skyrmion_timeline(Lx,Ly, lengthscale, R, w, Ntime, C = 1, dphi = 0):
     R_t = R*np.linspace(1,-0.05,Ntime)
     return np.stack([skyrmion_config(Lx, Ly,lengthscale, _R, w, C = 1, dphi = 0)[0] for _R in R_t],axis = 0)
@@ -69,15 +91,15 @@ def skyrmion_timeline(Lx,Ly, lengthscale, R, w, Ntime, C = 1, dphi = 0):
 
 def Hessian(magslice, energy, device = "cuda"):
     gradout = torch.autograd.grad(energy,magslice, create_graph=True, retain_graph=True)[0].reshape(-1)
-    N = magslice.data.view(-1).size()[0]
+    N = magslice.numel()
     ones = torch.ones(N//2,dtype=torch.float,device=device)
-    jacobian_correction = torch.cat((ones, 1./torch.sin(magslice.data.view(-1)[:N//2])),0)
+    jacobian_correction = torch.cat((ones, 1./torch.sin(magslice.reshape(-1)[:N//2])),0)
     hess = torch.stack([jacobian_correction[i]*torch.autograd.grad(gradout[i],magslice, create_graph=True)[0].view(-1)*jacobian_correction for i in range(N)],dim = 0)
     return hess#.reshape(hess.size()[0],hess.size()[0])
 
 def Hessian_sparse(magslice, energy, device = "cuda"):
     gradout = torch.autograd.grad(energy,magslice, create_graph=True, retain_graph=True)[0].reshape(-1)
-    N = magslice.data.view(-1).size()[0]
+    N = magslice.numel()
     ones = torch.ones(N//2,dtype=torch.float,device=device)
     jacobian_correction = torch.cat((ones, 1./torch.sin(magslice.data.view(-1)[:N//2])),0)
     hesslist = []
@@ -108,12 +130,12 @@ def skyrmion_bobber_timeline(Lx, Ly, Lz, lengthscale, R, w, Ntime, z0=None, C = 
 
 def Hessian_between_layers(magslice, energy, device = "cuda"):#for qivide & conquer method
     Lz = magslice.size()[-1]
-    N = magslice.view(-1).size()[0]//Lz
+    N = magslice.numel()//Lz
     ones = torch.ones((N//2,Lz),dtype=torch.float,device=device)
     jacobian_correction = torch.cat((ones, 1./torch.sin(magslice.data.view(-1,Lz)[:N//2])),0)
     hess_inlayers=[]
     hess_betweenlayers=[]
-    gradout = torch.autograd.grad(energy,magslice, create_graph=True, retain_graph=True)[0].reshape(-1,Lz)
+    gradout = torch.autograd.grad(energy,magslice, create_graph=True)[0].reshape(-1,Lz)
     if no_tqdm:
         iterz = range(Lz-1)
     else:
@@ -122,7 +144,7 @@ def Hessian_between_layers(magslice, energy, device = "cuda"):#for qivide & conq
         hess_list = []
         for i in range(N):
             hess_list.append((jacobian_correction[i,zi]\
-            *torch.autograd.grad(gradout[i,zi],magslice, create_graph=True)[0].view(-1,Lz)\
+            *torch.autograd.grad(gradout[i,zi],magslice, retain_graph=True)[0].view(-1,Lz)\
             *jacobian_correction).data[:,zi:zi+2])
             if N%100 == 0:
                 torch.cuda.empty_cache() 
@@ -130,8 +152,16 @@ def Hessian_between_layers(magslice, energy, device = "cuda"):#for qivide & conq
         hess_inlayers.append(hess[:,:,0].to("cpu").detach().numpy())
         if (zi+1 < Lz) :
             hess_betweenlayers.append(hess[:,:,1].to("cpu").detach().numpy())# hess [Nlayer(zi), Nlayer(zi+1)]
-    hess = torch.stack([(jacobian_correction[i,Lz-1]\
+    hess_list = []
+    for i in range(N):
+        hess_list.append((jacobian_correction[i,Lz-1]\
         *torch.autograd.grad(gradout[i,Lz-1],magslice, create_graph=True)[0].view(-1,Lz)\
-        *jacobian_correction)[:,Lz-1:Lz] for i in range(N)],dim = 0) # hess [Nlayer, Nlayer,Lz]
+        *jacobian_correction).data[:,Lz-1:Lz])
+        if N%100 == 0:
+            torch.cuda.empty_cache() 
+    hess = torch.stack(hess_list,dim = 0)
+    #hess = torch.stack([(jacobian_correction[i,Lz-1]\
+    #    *torch.autograd.grad(gradout[i,Lz-1],magslice, create_graph=True)[0].view(-1,Lz)\
+    #    *jacobian_correction)[:,Lz-1:Lz] for i in range(N)],dim = 0) # hess [Nlayer, Nlayer,Lz]
     hess_inlayers.append(hess[:,:,0].to("cpu").detach().numpy())
     return hess_inlayers, hess_betweenlayers

@@ -31,6 +31,21 @@ def showmode(magmode, magconfig, ti = 0, zi = 0):
     plt.quiver(x,y,mx,my,mz,pivot = 'middle')
     plt.colorbar()
     plt.show()
+    return mz
+
+def modetransform(magmode,magconfig, ti = 0, zi = 0):
+    mode = magmode.reshape(magconfig.shape)
+    th = magconfig[ti,0,:,:,zi]
+    phi = magconfig[ti,1,:,:,zi]
+    modeth = mode[ti,0,:,:,zi]
+    modephi = mode[ti,1,:,:,zi]
+    modex = -np.sin(th)*modeth
+    modey = np.cos(th)*np.cos(phi)*modeth - np.sin(phi)*modephi
+    modez = np.cos(th)*np.sin(phi)*modeth + np.cos(phi)*modephi
+    mx = np.cos(th)
+    my = np.sin(th)*np.cos(phi)
+    mz = np.sin(th)*np.sin(phi)
+    return mx, my, mz, modex, modey, modez
 
 def showconfig3D(magconfig, ti = 0, zi = 0):
     th = magconfig[ti,0,:,:,:]
