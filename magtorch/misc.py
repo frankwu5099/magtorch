@@ -119,13 +119,18 @@ def Hessian_bacckup(magslice, energy):
     return hess.reshape(hess.size()[0],hess.size()[0])
 
 def skyrmion_bobber(Lx, Ly, Lz, lengthscale, R, w, z0, C = 1, dphi = 0):
-    w_z = w*(1 - np.exp(-(np.arange(Lz)-z0)/lengthscale))
+    w_z = w*(1 - np.exp(-(np.arange(Lz)-z0)/lengthscale/2.25848))
     return np.concatenate([skyrmion_config(Lx, Ly,lengthscale, R/w*_w, _w, C = 1, dphi = 0)[0] for _w in w_z],axis = 3)
+
+def skyrmion_bobber_Rw(Lx, Ly, Lz, Rs, ws, C = 1, dphi = 0):
+    return np.concatenate([skyrmion_config(Lx, Ly,1, R_/1, w_/1, C = C, dphi = dphi)[0] for R_,w_ in zip(Rs,ws)],axis = 3).reshape(1,2,Lx,Ly,Lz)
 
 def skyrmion_bobber_timeline(Lx, Ly, Lz, lengthscale, R, w, Ntime, z0=None, C = 1, dphi = 0):
     if z0 == None:
-        z0 = -lengthscale
-    z0_t = np.linspace(z0,Lz,Ntime)
+        z0 = -100*lengthscale
+    z0_t1 = np.linspace(z0,0,Ntime//2)
+    z0_t2 = np.linspace(0,Lz,Ntime//2+1)
+    z0_t = np.concatenate((z0_t1,z0_t2[1:]))
     return np.stack([skyrmion_bobber(Lx, Ly, Lz, lengthscale, R, w, _z0, C = 1, dphi = 0) for _z0 in z0_t],axis = 0)
 
 def Hessian_between_layers(magslice, energy, device = "cuda"):#for qivide & conquer method
