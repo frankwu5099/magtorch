@@ -139,6 +139,23 @@ class Model:
         energy_site = torch.sum(self.configvec * (self.external_field_tensor + self.effective_field_conv_flat()),1)
         return energy_site.sum()
     
+    def effective_field_conv_flat_of(self,config):
+        expanded_padding = (self.boundary[2],self.boundary[2],
+                            self.boundary[1],self.boundary[1],
+                            self.boundary[0],self.boundary[0])
+        # the permutation of padding in F.pad is backward
+        padding0 = (1-self.boundary[0], 1-self.boundary[1], 1-self.boundary[2],)
+        return F.conv3d(F.pad(config, expanded_padding, mode='circular'),self.kernel,padding = padding0)
+    def energy_of(self, config):
+        """
+        self.configvec = flat_map(self.config)
+        energy_site = torch.sum(self.configvec * (self.effective_field_conv_flat()),axis = 1)
+        field_energy = self.external_field_tensor*torch.sum(self.configvec,(2,3,4))
+        return energy_site.sum() + field_energy.sum()
+        """
+        energy_site = torch.sum(config * (self.external_field_tensor + self.effective_field_conv_flat(config)),1)
+        return energy_site.sum()
+
     def save_config(self, name):
         np.save(name,self.config.to("cpu").detach().numpy())
     def save_energy(self, name):

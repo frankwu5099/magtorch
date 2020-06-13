@@ -56,14 +56,13 @@ def showconfig3D(magconfig, ti = 0, zi = 0):
     my = np.sin(th)*np.cos(phi)
     mz = np.sin(th)*np.sin(phi)
     mz = mz.flatten()
-    x = x.flatten()[mz<0.9]
-    y = y.flatten()[mz<0.9]
-    z = z.flatten()[mz<0.9]
-    mx = mx.flatten()[mz<0.9]
-    my = my.flatten()[mz<0.9]
-    mz = mz[mz<0.9]
+    x = x.flatten()#[mz<0.9]
+    y = y.flatten()#[mz<0.9]
+    z = z.flatten()#[mz<0.9]
+    mx = mx.flatten()#[mz<0.9]
+    my = my.flatten()#[mz<0.9]
+    mz = mz#[mz<0.9]
     color = plt.cm.jet(plt.Normalize()(mz))[:,:3]
-    print(color)
     a = vtkp.Arrows(np.stack([x-mx/2,y-my/2,z-mz/2],axis=1),np.stack([x+mx/2,y+my/2,z+mz/2],axis=1),c = color,scale = 1.5, res = 20, alpha = 0.7)
     vtkp.show([a], newPlotter =True)
 

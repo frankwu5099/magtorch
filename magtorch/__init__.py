@@ -3,3 +3,4 @@ from .misc import *
 from .model import *
 from .plot import *
 from .mode_solver import *
+from .dynamics import *
