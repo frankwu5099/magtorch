@@ -105,21 +105,9 @@ class Model:
         return F.conv3d(F.pad(self.configvec, expanded_padding, mode='circular'),self.kernel,padding = padding0)
     
     def external_field_update(self):
-        """
-        self.Lt = self.config.size()[0]
-        #field_change = np.linspace(0,1,self.Lt)
-        field_change = np.ones(self.Lt)
-        self.external_field_tensor = torch.reshape(torch.tensor(np.stack([field_change*0,field_change*0,-field_change*self.parameters['H']],axis = 1)), (self.Lt,3)).to(device)
-        """
         self.external_field_tensor = torch.reshape(torch.tensor([0,0,-self.parameters['H']]), (1,3,1,1,1)).to(device)
     
     def energy(self):
-        """
-        self.configvec = flat_map(self.config)
-        energy_site = torch.sum(self.configvec * (self.effective_field_conv_flat()),1)
-        field_energy = torch.sum(self.external_field_tensor*torch.sum(self.configvec,(2,3,4)),axis = 1)
-        return torch.sum(energy_site,(1,2,3)) + field_energy
-        """
         self.configvec = flat_map(self.config)
         energy_site = torch.sum(self.configvec * (self.external_field_tensor + self.effective_field_conv_flat()),1)
         return torch.sum(energy_site,(1,2,3))
@@ -129,12 +117,6 @@ class Model:
         return torch.sum(self.configvec[:,2,:,:,:],(1,2,3))
 
     def energy_all(self):
-        """
-        self.configvec = flat_map(self.config)
-        energy_site = torch.sum(self.configvec * (self.effective_field_conv_flat()),axis = 1)
-        field_energy = self.external_field_tensor*torch.sum(self.configvec,(2,3,4))
-        return energy_site.sum() + field_energy.sum()
-        """
         self.configvec = flat_map(self.config)
         energy_site = torch.sum(self.configvec * (self.external_field_tensor + self.effective_field_conv_flat()),1)
         return energy_site.sum()
@@ -147,12 +129,6 @@ class Model:
         padding0 = (1-self.boundary[0], 1-self.boundary[1], 1-self.boundary[2],)
         return F.conv3d(F.pad(config, expanded_padding, mode='circular'),self.kernel,padding = padding0)
     def energy_of(self, config):
-        """
-        self.configvec = flat_map(self.config)
-        energy_site = torch.sum(self.configvec * (self.effective_field_conv_flat()),axis = 1)
-        field_energy = self.external_field_tensor*torch.sum(self.configvec,(2,3,4))
-        return energy_site.sum() + field_energy.sum()
-        """
         energy_site = torch.sum(config * (self.external_field_tensor + self.effective_field_conv_flat(config)),1)
         return energy_site.sum()
 
