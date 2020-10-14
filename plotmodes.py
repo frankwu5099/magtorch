@@ -12,8 +12,8 @@ spmodes = np.load("modes_k_1.233_h_0.050_spL_48_Lz_96.npz")
 modes = skmodes['arr_1'].reshape(1,2,48,48,96,-1)
 modes_sp= spmodes['arr_1'].reshape(1,2,48,48,96,-1)
 modeden = np.sqrt(modes[0,0]**2 + modes[0,1]**2)
-config = np.load("../testk_1.233_h_0.050_L_48_Lz_96_config.npy")
-energy = np.load("../testk_1.233_h_0.050_L_48_Lz_96_energypath.npy")
+config = np.load("testk_1.233_h_0.050_L_48_Lz_96_config.npy")
+energy = np.load("testk_1.233_h_0.050_L_48_Lz_96_energypath.npy")
 #ts = np.load("../testk_1.233_h_0.050_L_48_Lz_96_ts.npy")
 #energy = energy - energy.max()
 #plt.plot(ts,energy/np.abs(energy).max(), '.')
@@ -30,13 +30,8 @@ ms = []
 for j in range(0,130):
 
     mx, my, mz,modex, modey, modez = modetransform(modes[:,:,:,:,:,j],config[0:1])
-    if j == -1:
-        showconfig(config, ti = 0, zi = 0)
-        showconfig(config, ti = 0, zi = 2)
-        showconfig(config, ti = 0, zi = 4)
-        showconfig(config, ti = 0, zi = 6)
-        showconfig(config, ti = 0, zi = 8)
-        showconfig(config, ti = 0, zi = 16)
+    if j == 0:
+        showconfig3D(config)
         #showconfig(config, ti = 0, zi = 32)
     #sx = my*modez - mz*modey
     #sy = mz*modex - mx*modez
@@ -64,13 +59,7 @@ ms = []
 for j in range(1,130):
     mx, my, mz,modex, modey, modez = modetransform(modes_sp[:,:,:,:,:,j],config[indsp:indsp+1],zi =-1)
     if j == 1:
-        showconfig(config, ti = indsp, zi = 0)
-        showconfig(config, ti = indsp, zi = 2)
-        showconfig(config, ti = indsp, zi = 4)
-        showconfig(config, ti = indsp, zi = 8)
-        showconfig(config, ti = indsp, zi = 16)
-        showconfig(config, ti = indsp, zi = 32)
-        showconfig(config, ti = indsp, zi = 64)
+        showconfig3D(config, ti = indsp)
     #sx = my*modez - mz*modey
     #sy = mz*modex - mx*modez
     #nx,ny = x/np.sqrt(x*x+y*y), y/np.sqrt(x*x+y*y)
